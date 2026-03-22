@@ -1,0 +1,76 @@
+# =============================================================================
+# BuddyFinance App — .gitignore
+# React Native + Expo + TypeScript
+# =============================================================================
+
+
+# ── Node ──────────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+
+# ── Expo ──────────────────────────────────────────────────────────────────────
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+
+# ── Build nativos ─────────────────────────────────────────────────────────────
+android/
+ios/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+
+# ── Variáveis de ambiente ─────────────────────────────────────────────────────
+# Nunca versionar segredos, chaves de API ou tokens
+.env
+.env.local
+.env.development
+.env.production
+.env*.local
+
+
+# ── TypeScript ────────────────────────────────────────────────────────────────
+*.tsbuildinfo
+
+
+# ── Sistema operacional ───────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+
+# ── Editores e IDEs ───────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+
+# ── Logs e relatórios ─────────────────────────────────────────────────────────
+logs/
+*.log
+coverage/
+.nyc_output/
+
+
+# ── Metro bundler ─────────────────────────────────────────────────────────────
+.metro-health-check*
