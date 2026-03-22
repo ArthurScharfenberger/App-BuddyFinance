@@ -1,50 +1,104 @@
-# Welcome to your Expo app 👋
+# BuddyFinance — App Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App mobile do BuddyFinance, minha plataforma de gestão financeira pessoal com inteligência de mercado em tempo real.
 
-## Get started
+O mesmo produto do site, agora no celular. Controle de gastos, analisador de ativos, educação financeira e perfil — tudo em uma navegação fluida por abas.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## Telas
 
-2. Start the app
+| Tela | O que faz |
+|------|-----------|
+| **Início** | Saldo, resumo de orçamento, atalhos rápidos e transações recentes |
+| **Histórico** | Todas as transações com filtros por tipo e agrupamento por mês |
+| **Investir** | Analisador ao vivo de Ibovespa, Cripto e FIIs com atualização a cada 30s |
+| **Aprender** | Dicas financeiras (50/30/20, fundo de emergência, juros compostos) e artigos |
+| **Perfil** | Edição de dados, preferências, configurações e zona de perigo |
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## Stack
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **React Native** + **Expo SDK 54**
+- **TypeScript**
+- **React Navigation** — navegação por abas inferiores
+- **AsyncStorage** — persistência local de transações e perfil
+- **Expo Vector Icons** — ícones Ionicons
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## Estrutura
 
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+buddy-finance-app/
+│
+├── App.tsx                          ← Entry point
+│
+├── src/
+│   ├── theme/
+│   │   └── colors.ts                ← Sistema de design centralizado
+│   │
+│   ├── components/
+│   │   ├── BalanceCard.tsx          ← Card de saldo com resumo
+│   │   ├── BuddyMascot.tsx          ← Mascote com variantes de estado
+│   │   ├── CustomButton.tsx         ← Botão com variantes e loading
+│   │   ├── TransactionItem.tsx      ← Item de transação na lista
+│   │   └── TransactionModal.tsx     ← Modal de adicionar receita/despesa
+│   │
+│   ├── screens/
+│   │   ├── HomeScreen.tsx
+│   │   ├── TransacoesScreen.tsx
+│   │   ├── InvestimentosScreen.tsx
+│   │   ├── EducacaoScreen.tsx
+│   │   └── PerfilScreen.tsx
+│   │
+│   └── navigation/
+│       └── BottomTabs.tsx
+│
+└── assets/
+    ├── logo.png
+    ├── logoapp.png
+    └── mascot.png
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## Como rodar
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+# Instala dependências
+npm install
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+# Inicia o servidor de desenvolvimento
+npx expo start
+```
 
-## Join the community
+Com o servidor rodando, escaneie o QR code pelo **Expo Go** (iOS ou Android) ou pressione `a` para Android emulado / `i` para iOS simulado.
 
-Join our community of developers creating universal apps.
+---
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Decisões técnicas
+
+**Tema centralizado** — todas as cores, tamanhos de fonte, espaçamentos e raios estão em `src/theme/colors.ts`. Alterar a cor primária em um único lugar reflete em todo o app. Identidade visual alinhada com o site (`#0052FF`).
+
+**Persistência local** — os dados de transações e perfil ficam no `AsyncStorage` com a chave `@buddyfinance:data_v2`. Não há dependência de backend para o app funcionar offline.
+
+**Sem `any`** — o projeto usa TypeScript de forma estrita. Todos os componentes e funções têm tipos explícitos.
+
+**Analisador simulado** — os dados de mercado são mock estático em `InvestimentosScreen`. Os pontos de integração estão marcados com `TODO` para quando a API estiver pronta.
+
+---
+
+## O que ainda falta para produção
+
+- [ ] Integrar autenticação real (login/cadastro via API)
+- [ ] Substituir mock de mercado pela API real (Brapi, Yahoo Finance etc.)
+- [ ] Sincronizar transações com backend
+- [ ] Implementar artigos completos na tela Aprender
+- [ ] Adicionar notificações push para alertas de preço
+- [ ] Configurar EAS Build para gerar `.apk` e `.ipa`
+
+---
+
+© 2026 BuddyFinance
