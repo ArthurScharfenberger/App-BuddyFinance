@@ -17,7 +17,7 @@ import { theme } from '../theme/colors';
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface CustomButtonProps extends TouchableOpacityProps {
-    title: string;
+    title?: string;
     variant?: 'primary' | 'danger' | 'ghost' | 'surface';
     size?: 'sm' | 'md' | 'lg';
     icon?: keyof typeof Ionicons.glyphMap;
@@ -28,19 +28,19 @@ interface CustomButtonProps extends TouchableOpacityProps {
 
 const variantStyles = {
     primary: {
-        bg:         theme.colors.primary,
-        text:       '#ffffff',
+        bg:         theme.colors.secondary,
+        text:       theme.colors.textPrimary,
         border:     theme.colors.primary,
     },
     danger: {
-        bg:         theme.colors.danger,
+        bg:         theme.colors.ifoodRed,
         text:       '#ffffff',
-        border:     theme.colors.danger,
+        border:     theme.colors.ifoodRed,
     },
     ghost: {
         bg:         'transparent',
-        text:       theme.colors.textMuted,
-        border:     theme.colors.border,
+        text:       theme.colors.primary,
+        border:     theme.colors.primary,
     },
     surface: {
         bg:         theme.colors.surface,
@@ -50,9 +50,9 @@ const variantStyles = {
 } as const;
 
 const sizeStyles = {
-    sm: { paddingVertical: 10, paddingHorizontal: 14, fontSize: theme.typography.sm },
-    md: { paddingVertical: 14, paddingHorizontal: 18, fontSize: theme.typography.base },
-    lg: { paddingVertical: 17, paddingHorizontal: 22, fontSize: theme.typography.md },
+    sm: { paddingVertical: 12, paddingHorizontal: 16, fontSize: theme.typography.sm },
+    md: { paddingVertical: 16, paddingHorizontal: 20, fontSize: theme.typography.base },
+    lg: { paddingVertical: 19, paddingHorizontal: 24, fontSize: theme.typography.md },
 } as const;
 
 // ── Componente ────────────────────────────────────────────────────────────────
@@ -69,6 +69,7 @@ export default function CustomButton({
 }: CustomButtonProps) {
     const v = variantStyles[variant];
     const s = sizeStyles[size];
+    const hasTitle = Boolean(title?.trim());
 
     return (
         <TouchableOpacity
@@ -94,14 +95,16 @@ export default function CustomButton({
                     {icon && (
                         <Ionicons
                             name={icon}
-                            size={s.fontSize + 2}
+                            size={hasTitle ? s.fontSize + 2 : s.fontSize + 12}
                             color={v.text}
-                            style={styles.icon}
+                            style={hasTitle && styles.icon}
                         />
                     )}
-                    <Text style={[styles.text, { color: v.text, fontSize: s.fontSize }]}>
-                        {title}
-                    </Text>
+                    {hasTitle && (
+                        <Text style={[styles.text, { color: v.text, fontSize: s.fontSize }]}>
+                            {title}
+                        </Text>
+                    )}
                 </>
             )}
         </TouchableOpacity>
@@ -116,15 +119,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: theme.radius.lg,
-        borderWidth: 1,
+        borderRadius: theme.radius.pill,
+        borderWidth: 2,
         marginHorizontal: theme.spacing.xs,
+        ...theme.shadow.sm,
     },
     icon: {
         marginRight: theme.spacing.xs,
     },
     text: {
-        fontWeight: theme.typography.bold,
-        letterSpacing: -0.2,
+        fontFamily: theme.typography.fontFamily.body,
+        fontWeight: theme.typography.semibold,
     },
 });

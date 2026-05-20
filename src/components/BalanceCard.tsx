@@ -63,10 +63,12 @@ export default function BalanceCard({ balance, receitas, despesas }: BalanceCard
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: theme.colors.primary,
+        backgroundColor: theme.colors.secondary,
         padding: theme.spacing.xl,
-        borderRadius: theme.radius.xl,
+        borderRadius: theme.radius.xxl,
         marginBottom: theme.spacing.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
         ...theme.shadow.lg,
     },
     header: {
@@ -75,23 +77,24 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.sm,
     },
     label: {
-        color: 'rgba(255,255,255,0.7)',
+        color: 'rgba(244,247,251,0.76)',
+        fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.xs,
         fontWeight: theme.typography.bold,
-        letterSpacing: 1.5,
+        letterSpacing: 1,
         textTransform: 'uppercase',
         marginLeft: theme.spacing.xs,
     },
     balance: {
-        color: '#ffffff',
+        color: theme.colors.textPrimary,
+        fontFamily: theme.typography.fontFamily.brand,
         fontSize: theme.typography.xxxl,
         fontWeight: theme.typography.black,
-        letterSpacing: -1,
         marginBottom: theme.spacing.lg,
     },
     divider: {
         height: 1,
-        backgroundColor: 'rgba(255,255,255,0.15)',
+        backgroundColor: 'rgba(30,167,255,0.22)',
         marginBottom: theme.spacing.base,
     },
     summaryRow: {
@@ -107,14 +110,16 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     summaryLabel: {
-        color: 'rgba(255,255,255,0.7)',
+        color: 'rgba(244,247,251,0.76)',
+        fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.xs,
         marginLeft: 4,
         textTransform: 'uppercase',
-        letterSpacing: 0.8,
+        letterSpacing: 0.5,
     },
     summaryValue: {
-        color: '#ffffff',
+        color: theme.colors.textPrimary,
+        fontFamily: theme.typography.fontFamily.brand,
         fontSize: theme.typography.md,
         fontWeight: theme.typography.bold,
     },

@@ -84,14 +84,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: theme.colors.surface,
         padding: theme.spacing.base,
-        borderRadius: theme.radius.lg,
+        borderRadius: theme.radius.xl,
         marginBottom: theme.spacing.sm,
         borderWidth: 1,
         borderColor: theme.colors.borderSoft,
+        ...theme.shadow.sm,
     },
     iconWrapper: {
         padding: theme.spacing.sm,
-        borderRadius: theme.radius.md,
+        borderRadius: theme.radius.pill,
         marginRight: theme.spacing.md,
     },
     info: {
@@ -99,15 +100,18 @@ const styles = StyleSheet.create({
     },
     title: {
         color: theme.colors.textPrimary,
+        fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.base,
         fontWeight: theme.typography.semibold,
     },
     date: {
         color: theme.colors.textFaint,
+        fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.xs,
         marginTop: 3,
     },
     amount: {
+        fontFamily: theme.typography.fontFamily.brand,
         fontSize: theme.typography.base,
         fontWeight: theme.typography.bold,
     },

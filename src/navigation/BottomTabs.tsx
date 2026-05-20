@@ -11,14 +11,13 @@ import { Platform, StyleSheet, View } from 'react-native';
 
 import EducacaoScreen     from '../screens/EducacaoScreen';
 import HomeScreen         from '../screens/HomeScreen';
-import InvestimentosScreen from '../screens/InvestimentosScreen';
 import PerfilScreen       from '../screens/PerfilScreen';
 import TransacoesScreen   from '../screens/TransacoesScreen';
 import { theme }          from '../theme/colors';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-type TabName = 'Início' | 'Histórico' | 'Investir' | 'Aprender' | 'Perfil';
+type TabName = 'Início' | 'Histórico' | 'Aprender' | 'Perfil';
 
 // ── Mapa de ícones ────────────────────────────────────────────────────────────
 
@@ -28,7 +27,6 @@ const TAB_ICONS: Record<TabName, {
 }> = {
     'Início':    { active: 'home',          inactive: 'home-outline'          },
     'Histórico': { active: 'list',          inactive: 'list-outline'          },
-    'Investir':  { active: 'trending-up',   inactive: 'trending-up-outline'   },
     'Aprender':  { active: 'book',          inactive: 'book-outline'          },
     'Perfil':    { active: 'person',        inactive: 'person-outline'        },
 };
@@ -53,7 +51,7 @@ function TabIcon({
         <View style={[styles.iconWrapper, focused && styles.iconWrapperActive]}>
             <Ionicons
                 name={iconName}
-                size={22}
+                size={26}
                 color={focused ? theme.colors.primary : theme.colors.textFaint}
             />
         </View>
@@ -77,6 +75,8 @@ export default function BottomTabs() {
 
                 // Estilo do label
                 tabBarLabelStyle: styles.tabLabel,
+                tabBarIconStyle: styles.tabIconSlot,
+                tabBarItemStyle: styles.tabItem,
 
                 // Ícone customizado
                 tabBarIcon: ({ focused }) => (
@@ -86,7 +86,6 @@ export default function BottomTabs() {
         >
             <Tab.Screen name="Início"    component={HomeScreen}          />
             <Tab.Screen name="Histórico" component={TransacoesScreen}    />
-            <Tab.Screen name="Investir"  component={InvestimentosScreen} />
             <Tab.Screen name="Aprender"  component={EducacaoScreen}      />
             <Tab.Screen name="Perfil"    component={PerfilScreen}        />
         </Tab.Navigator>
@@ -100,18 +99,33 @@ const styles = StyleSheet.create({
         backgroundColor:  theme.colors.surface,
         borderTopWidth:   1,
         borderTopColor:   theme.colors.border,
-        height:           Platform.OS === 'ios' ? 85 : 65,
-        paddingBottom:    Platform.OS === 'ios' ? 24 : 10,
-        paddingTop:       8,
+        height:           Platform.OS === 'ios' ? 108 : 90,
+        paddingBottom:    Platform.OS === 'ios' ? 28 : 14,
+        paddingTop:       12,
+        ...theme.shadow.md,
+    },
+    tabItem: {
+        height: 64,
+        justifyContent: 'center',
+        paddingVertical: 6,
+    },
+    tabIconSlot: {
+        width: 52,
+        height: 38,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 2,
     },
     tabLabel: {
-        fontSize:   10,
+        fontFamily: theme.typography.fontFamily.body,
+        fontSize:   theme.typography.sm,
         fontWeight: theme.typography.semibold,
-        marginTop:  -2,
+        marginTop:  3,
     },
     iconWrapper: {
-        padding: 4,
-        borderRadius: theme.radius.sm,
+        width: 44,
+        height: 34,
+        borderRadius: theme.radius.pill,
         alignItems: 'center',
         justifyContent: 'center',
     },

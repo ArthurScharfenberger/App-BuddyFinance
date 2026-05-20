@@ -94,10 +94,11 @@ const styles = StyleSheet.create({
         width: 52,
         height: 52,
         borderRadius: theme.radius.pill,
-        backgroundColor: theme.colors.surface,
+        backgroundColor: theme.colors.secondaryMuted,
         borderWidth: 2,
         alignItems: 'center',
         justifyContent: 'center',
+        ...theme.shadow.sm,
     },
     avatarEmoji: {
         fontSize: 26,
@@ -109,6 +110,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         padding: theme.spacing.md,
         position: 'relative',
+        ...theme.shadow.sm,
     },
     bubbleTip: {
         position: 'absolute',
@@ -133,6 +135,7 @@ const styles = StyleSheet.create({
     message: {
         flex: 1,
         color: theme.colors.textPrimary,
+        fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.sm,
         lineHeight: 20,
         fontWeight: theme.typography.medium,

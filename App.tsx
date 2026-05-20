@@ -5,13 +5,21 @@
 // =============================================================================
 
 import { NavigationContainer } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
 import React from 'react';
 import { StatusBar } from 'react-native';
 
-import BottomTabs from './src/navigation/BottomTabs';
+import RootNavigator from './src/navigation/RootNavigator';
 import { theme }  from './src/theme/colors';
 
 export default function App() {
+    const [fontsLoaded] = useFonts({
+        Sora: require('./assets/fonts/Sora.ttf'),
+        Inter: require('./assets/fonts/Inter.ttf'),
+    });
+
+    if (!fontsLoaded) return null;
+
     return (
         <NavigationContainer>
             {/* StatusBar escura alinhada com o fundo #080e1a */}
@@ -20,7 +28,7 @@ export default function App() {
                 backgroundColor={theme.colors.background}
                 translucent={false}
             />
-            <BottomTabs />
+            <RootNavigator />
         </NavigationContainer>
     );
 }

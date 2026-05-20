@@ -1,10 +1,12 @@
 export const theme = {
   colors: {
-    background: '#131824', // Fundo escuro elegante
-    surface: '#1E2532',    // Fundo dos cartões (um pouco mais claro)
-    primary: '#10B981',    // Verde esmeralda (Dinheiro/Receita)
-    danger: '#EF4444',     // Vermelho (Despesa)
-    textLight: '#F9FAFB',  // Texto principal (Branco)
-    textMuted: '#9CA3AF',  // Texto secundário (Cinzento)
+    background: '#050A14',
+    surface: '#0B1220',
+    primary: '#1EA7FF',
+    secondary: '#0F4C81',
+    danger: '#FF4757',
+    ifoodRed: '#EA1D2C',
+    textLight: '#F4F7FB',
+    textMuted: '#8A95A8',
   }
 };

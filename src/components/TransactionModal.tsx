@@ -159,7 +159,12 @@ export default function TransactionModal({
                                 style={[styles.saveBtn, { backgroundColor: accentColor }]}
                                 onPress={handleSave}
                             >
-                                <Text style={styles.saveText}>Confirmar</Text>
+                                <Text style={[
+                                    styles.saveText,
+                                    { color: isReceita ? theme.colors.buddyBlack : theme.colors.textPrimary },
+                                ]}>
+                                    Confirmar
+                                </Text>
                             </TouchableOpacity>
                         </View>
 
@@ -186,6 +191,7 @@ const styles = StyleSheet.create({
         borderTopRightRadius: theme.radius.xxl,
         borderTopWidth: 1,
         borderColor: theme.colors.border,
+        ...theme.shadow.md,
     },
     handle: {
         width: 40,
@@ -203,6 +209,7 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.xl,
     },
     title: {
+        fontFamily: theme.typography.fontFamily.brand,
         fontSize: theme.typography.lg,
         fontWeight: theme.typography.bold,
     },
@@ -211,6 +218,7 @@ const styles = StyleSheet.create({
     },
     inputLabel: {
         color: theme.colors.textMuted,
+        fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.sm,
         fontWeight: theme.typography.semibold,
         textTransform: 'uppercase',
@@ -218,8 +226,9 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.xs,
     },
     input: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: theme.colors.backgroundSoft,
         color: theme.colors.textPrimary,
+        fontFamily: theme.typography.fontFamily.body,
         padding: theme.spacing.base,
         borderRadius: theme.radius.lg,
         marginBottom: theme.spacing.base,
@@ -228,12 +237,13 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.border,
     },
     inputLarge: {
+        fontFamily: theme.typography.fontFamily.brand,
         fontSize: theme.typography.xl,
         fontWeight: theme.typography.bold,
-        letterSpacing: -0.5,
     },
     suggestLabel: {
         color: theme.colors.textFaint,
+        fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.sm,
         marginBottom: theme.spacing.sm,
     },
@@ -244,15 +254,16 @@ const styles = StyleSheet.create({
         gap: theme.spacing.xs,
     },
     badge: {
-        backgroundColor: theme.colors.background,
+        backgroundColor: 'transparent',
         paddingHorizontal: theme.spacing.md,
         paddingVertical: theme.spacing.sm,
         borderRadius: theme.radius.pill,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderWidth: 2,
+        borderColor: theme.colors.secondary,
     },
     badgeText: {
         color: theme.colors.textMuted,
+        fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.sm,
         fontWeight: theme.typography.medium,
     },
@@ -264,22 +275,23 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: theme.spacing.base,
         alignItems: 'center',
-        borderRadius: theme.radius.lg,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderRadius: theme.radius.pill,
+        borderWidth: 2,
+        borderColor: theme.colors.primary,
     },
     cancelText: {
-        color: theme.colors.textMuted,
+        color: theme.colors.primary,
+        fontFamily: theme.typography.fontFamily.body,
         fontWeight: theme.typography.bold,
     },
     saveBtn: {
         flex: 2,
         padding: theme.spacing.base,
-        borderRadius: theme.radius.lg,
+        borderRadius: theme.radius.pill,
         alignItems: 'center',
     },
     saveText: {
-        color: '#ffffff',
+        fontFamily: theme.typography.fontFamily.body,
         fontWeight: theme.typography.bold,
         fontSize: theme.typography.base,
     },

@@ -6,7 +6,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Image,
     RefreshControl,
@@ -15,6 +15,7 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
+    useWindowDimensions,
     View,
 } from 'react-native';
 import BalanceCard from '../components/BalanceCard';
@@ -30,12 +31,60 @@ const STORAGE_KEY = '@buddyfinance:data_v2';
 
 /** Categorias de atalho rápido */
 const QUICK_CATEGORIES = [
-    { icon: 'fast-food' as const, label: 'iFood', color: '#EA1D2C' },
-    { icon: 'cart' as const, label: 'Mercado', color: '#4CAF50' },
+    { icon: 'fast-food' as const, label: 'iFood', color: theme.colors.ifoodRed },
+    { icon: 'cart' as const, label: 'Mercado', color: theme.colors.success },
     { icon: 'car' as const, label: 'Uber', color: theme.colors.textPrimary },
-    { icon: 'flash' as const, label: 'Contas', color: '#F59E0B' },
+    { icon: 'flash' as const, label: 'Contas', color: theme.colors.warning },
     { icon: 'medical' as const, label: 'Saúde', color: '#06B6D4' },
     { icon: 'school' as const, label: 'Educação', color: '#8B5CF6' },
+] as const;
+
+const MARKET_MOVERS = [
+    {
+        symbol: 'BTC',
+        name: 'Bitcoin',
+        type: 'Cripto',
+        price: 'US$ 103.240',
+        change: '+7,8%',
+        direction: 'up',
+        note: 'Alta forte em cripto',
+    },
+    {
+        symbol: 'NVDA',
+        name: 'Nvidia',
+        type: 'Ação EUA',
+        price: 'US$ 142,30',
+        change: '+5,4%',
+        direction: 'up',
+        note: 'Tecnologia em destaque',
+    },
+    {
+        symbol: 'SOL',
+        name: 'Solana',
+        type: 'Cripto',
+        price: 'US$ 168,10',
+        change: '-6,2%',
+        direction: 'down',
+        note: 'Correção no dia',
+    },
+    {
+        symbol: 'PETR4',
+        name: 'Petrobras PN',
+        type: 'Ação BR',
+        price: 'R$ 38,42',
+        change: '+3,1%',
+        direction: 'up',
+        note: 'Volume acima da média',
+    },
+    {
+        symbol: 'ETH',
+        name: 'Ethereum',
+        type: 'Cripto',
+        price: 'US$ 3.420',
+        change: '-4,7%',
+        direction: 'down',
+        note: 'Queda entre criptoativos',
+    },
 ] as const;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -66,10 +115,16 @@ const getMascotMessage = (balance: number, percent: number): {
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
+    const { width } = useWindowDimensions();
+    const marketCarouselRef = useRef<ScrollView>(null);
+    const marketCardWidth = Math.max(width - theme.spacing.xl * 2, 280);
+    const marketStep = marketCardWidth + theme.spacing.md;
+
     // Estado principal
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [balance, setBalance] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
+    const [marketIndex, setMarketIndex] = useState(0);
 
     // Estado do modal
     const [modalVisible, setModalVisible] = useState(false);
@@ -103,6 +158,21 @@ export default function HomeScreen() {
     }, []);
 
     useEffect(() => { loadData(); }, [loadData]);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setMarketIndex((current) => {
+                const next = (current + 1) % MARKET_MOVERS.length;
+                marketCarouselRef.current?.scrollTo({
+                    x: next * marketStep,
+                    animated: true,
+                });
+                return next;
+            });
+        }, 3500);
+
+        return () => clearInterval(timer);
+    }, [marketStep]);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -203,6 +273,88 @@ export default function HomeScreen() {
                 <BuddyMascot message={mascot.message} variant={mascot.variant} />
 
                 {/* ── Card de saldo ── */}
+                <View style={styles.marketSection}>
+                    <View style={styles.marketHeader}>
+                        <Text style={[styles.sectionTitle, styles.marketTitle]}>
+                            Radar do Mercado
+                        </Text>
+                        <Text style={styles.marketHint}>Altas e quedas</Text>
+                    </View>
+
+                    <ScrollView
+                        ref={marketCarouselRef}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        decelerationRate="fast"
+                        snapToInterval={marketStep}
+                        snapToAlignment="start"
+                        onMomentumScrollEnd={({ nativeEvent }) => {
+                            const nextIndex = Math.round(nativeEvent.contentOffset.x / marketStep);
+                            setMarketIndex(Math.min(nextIndex, MARKET_MOVERS.length - 1));
+                        }}
+                    >
+                        {MARKET_MOVERS.map((asset) => {
+                            const isUp = asset.direction === 'up';
+                            const accentColor = isUp ? theme.colors.success : theme.colors.ifoodRed;
+
+                            return (
+                                <View
+                                    key={asset.symbol}
+                                    style={[styles.marketCard, { width: marketCardWidth }]}
+                                >
+                                    <View style={styles.marketTopRow}>
+                                        <View style={styles.marketAssetRow}>
+                                            <View style={[
+                                                styles.marketIcon,
+                                                { backgroundColor: accentColor + '18' },
+                                            ]}>
+                                                <Ionicons
+                                                    name={isUp ? 'trending-up' : 'trending-down'}
+                                                    size={24}
+                                                    color={accentColor}
+                                                />
+                                            </View>
+                                            <View>
+                                                <Text style={styles.marketSymbol}>{asset.symbol}</Text>
+                                                <Text style={styles.marketName}>{asset.name}</Text>
+                                            </View>
+                                        </View>
+
+                                        <View style={[styles.marketBadge, { borderColor: accentColor }]}>
+                                            <Text style={[styles.marketBadgeText, { color: accentColor }]}>
+                                                {asset.type}
+                                            </Text>
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.marketBottomRow}>
+                                        <View>
+                                            <Text style={styles.marketPrice}>{asset.price}</Text>
+                                            <Text style={styles.marketNote}>{asset.note}</Text>
+                                        </View>
+
+                                        <Text style={[styles.marketChange, { color: accentColor }]}>
+                                            {asset.change}
+                                        </Text>
+                                    </View>
+                                </View>
+                            );
+                        })}
+                    </ScrollView>
+
+                    <View style={styles.marketDots}>
+                        {MARKET_MOVERS.map((asset, index) => (
+                            <View
+                                key={asset.symbol}
+                                style={[
+                                    styles.marketDot,
+                                    index === marketIndex && styles.marketDotActive,
+                                ]}
+                            />
+                        ))}
+                    </View>
+                </View>
+
                 <BalanceCard
                     balance={formatCurrency(balance)}
                     receitas={formatCurrency(totalReceitas)}
@@ -224,7 +376,7 @@ export default function HomeScreen() {
                                 width: `${percentualGasto * 100}%` as any,
                                 backgroundColor: percentualGasto > 0.8
                                     ? theme.colors.danger
-                                    : theme.colors.primary,
+                                    : theme.colors.success,
                             },
                         ]} />
                     </View>
@@ -233,21 +385,23 @@ export default function HomeScreen() {
                 {/* ── Botões de ação ── */}
                 <View style={styles.actionRow}>
                     <CustomButton
-                        title="+ Receita"
+                        title="Receita"
                         variant="primary"
                         icon="add-circle-outline"
+                        accessibilityLabel="Adicionar receita"
                         onPress={() => openModal('receita')}
                     />
                     <CustomButton
-                        title="- Despesa"
+                        title="Despesa"
                         variant="danger"
                         icon="remove-circle-outline"
+                        accessibilityLabel="Adicionar despesa"
                         onPress={() => openModal('despesa')}
                     />
                 </View>
 
                 {/* ── Atalhos de categoria ── */}
-                <Text style={styles.sectionTitle}>Sugestões de hoje</Text>
+                <Text style={styles.sectionTitle}>Despesas Rápidas</Text>
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -261,7 +415,7 @@ export default function HomeScreen() {
                             onPress={() => openModal('despesa', label)}
                         >
                             <View style={[styles.catIcon, { backgroundColor: color + '18' }]}>
-                                <Ionicons name={icon} size={22} color={color} />
+                                <Ionicons name={icon} size={30} color={color} />
                             </View>
                             <Text style={styles.catLabel}>{label}</Text>
                         </TouchableOpacity>
@@ -323,6 +477,7 @@ const styles = StyleSheet.create({
     scroll: {
         flex: 1,
         paddingHorizontal: theme.spacing.xl,
+        backgroundColor: theme.colors.background,
     },
 
     // Cabeçalho
@@ -345,21 +500,24 @@ const styles = StyleSheet.create({
     },
     greeting: {
         color: theme.colors.textFaint,
+        fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.xs,
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
     username: {
         color: theme.colors.textPrimary,
+        fontFamily: theme.typography.fontFamily.brand,
         fontSize: theme.typography.lg,
         fontWeight: theme.typography.bold,
     },
     notifBtn: {
         backgroundColor: theme.colors.surface,
         padding: theme.spacing.sm + 2,
-        borderRadius: theme.radius.md,
+        borderRadius: theme.radius.pill,
         borderWidth: 1,
         borderColor: theme.colors.border,
+        ...theme.shadow.sm,
     },
     notifDot: {
         position: 'absolute',
@@ -374,13 +532,126 @@ const styles = StyleSheet.create({
     },
 
     // Orçamento
+    // Mercado
+    marketSection: {
+        marginBottom: theme.spacing.lg,
+    },
+    marketHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: theme.spacing.sm,
+    },
+    marketTitle: {
+        marginBottom: 0,
+    },
+    marketHint: {
+        color: theme.colors.textFaint,
+        fontFamily: theme.typography.fontFamily.body,
+        fontSize: theme.typography.xs,
+        fontWeight: theme.typography.semibold,
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+    },
+    marketCard: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: theme.radius.xl,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        padding: theme.spacing.base,
+        marginRight: theme.spacing.md,
+        ...theme.shadow.sm,
+    },
+    marketTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: theme.spacing.lg,
+    },
+    marketAssetRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    marketIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: theme.radius.pill,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: theme.spacing.md,
+    },
+    marketSymbol: {
+        color: theme.colors.textPrimary,
+        fontFamily: theme.typography.fontFamily.brand,
+        fontSize: theme.typography.lg,
+        fontWeight: theme.typography.bold,
+    },
+    marketName: {
+        color: theme.colors.textMuted,
+        fontFamily: theme.typography.fontFamily.body,
+        fontSize: theme.typography.sm,
+        marginTop: 2,
+    },
+    marketBadge: {
+        borderWidth: 1,
+        borderRadius: theme.radius.pill,
+        paddingHorizontal: theme.spacing.sm,
+        paddingVertical: theme.spacing.xs,
+    },
+    marketBadgeText: {
+        fontFamily: theme.typography.fontFamily.body,
+        fontSize: theme.typography.xs,
+        fontWeight: theme.typography.bold,
+    },
+    marketBottomRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+        gap: theme.spacing.md,
+    },
+    marketPrice: {
+        color: theme.colors.textPrimary,
+        fontFamily: theme.typography.fontFamily.brand,
+        fontSize: theme.typography.xl,
+        fontWeight: theme.typography.black,
+    },
+    marketNote: {
+        color: theme.colors.textFaint,
+        fontFamily: theme.typography.fontFamily.body,
+        fontSize: theme.typography.xs,
+        marginTop: 4,
+    },
+    marketChange: {
+        fontFamily: theme.typography.fontFamily.brand,
+        fontSize: theme.typography.xl,
+        fontWeight: theme.typography.black,
+    },
+    marketDots: {
+        flexDirection: 'row',
+        alignSelf: 'center',
+        gap: theme.spacing.xs,
+        marginTop: theme.spacing.sm,
+    },
+    marketDot: {
+        width: 6,
+        height: 6,
+        borderRadius: theme.radius.pill,
+        backgroundColor: theme.colors.border,
+    },
+    marketDotActive: {
+        width: 22,
+        backgroundColor: theme.colors.primary,
+    },
+
     budgetCard: {
         backgroundColor: theme.colors.surface,
         padding: theme.spacing.base,
-        borderRadius: theme.radius.lg,
+        borderRadius: theme.radius.xl,
         marginBottom: theme.spacing.lg,
         borderWidth: 1,
-        borderColor: theme.colors.borderSoft,
+        borderColor: theme.colors.border,
+        ...theme.shadow.sm,
     },
     budgetRow: {
         flexDirection: 'row',
@@ -389,16 +660,18 @@ const styles = StyleSheet.create({
     },
     budgetLabel: {
         color: theme.colors.textMuted,
+        fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.sm,
     },
     budgetPercent: {
         color: theme.colors.textPrimary,
+        fontFamily: theme.typography.fontFamily.brand,
         fontSize: theme.typography.sm,
         fontWeight: theme.typography.semibold,
     },
     progressBg: {
-        height: 6,
-        backgroundColor: theme.colors.background,
+        height: 10,
+        backgroundColor: theme.colors.backgroundSoft,
         borderRadius: theme.radius.pill,
         overflow: 'hidden',
     },
@@ -416,6 +689,7 @@ const styles = StyleSheet.create({
     // Categorias
     sectionTitle: {
         color: theme.colors.textPrimary,
+        fontFamily: theme.typography.fontFamily.brand,
         fontSize: theme.typography.md,
         fontWeight: theme.typography.bold,
         marginBottom: theme.spacing.md,
@@ -428,12 +702,18 @@ const styles = StyleSheet.create({
         marginRight: theme.spacing.lg,
     },
     catIcon: {
-        padding: theme.spacing.md,
-        borderRadius: theme.radius.lg,
-        marginBottom: theme.spacing.xs,
+        width: 64,
+        height: 64,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: theme.radius.pill,
+        marginBottom: theme.spacing.sm,
+        borderWidth: 1,
+        borderColor: theme.colors.borderSoft,
     },
     catLabel: {
         color: theme.colors.textMuted,
+        fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.xs,
     },
 
@@ -449,6 +729,7 @@ const styles = StyleSheet.create({
     },
     seeAll: {
         color: theme.colors.primary,
+        fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.sm,
         fontWeight: theme.typography.semibold,
     },
@@ -460,12 +741,14 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         color: theme.colors.textMuted,
+        fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.base,
         fontWeight: theme.typography.medium,
         marginTop: theme.spacing.md,
     },
     emptySubText: {
         color: theme.colors.textFaint,
+        fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.sm,
         marginTop: theme.spacing.xs,
     },
