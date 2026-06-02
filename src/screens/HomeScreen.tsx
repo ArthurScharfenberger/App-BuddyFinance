@@ -537,9 +537,10 @@ const styles = StyleSheet.create({
         gap: theme.spacing.md,
     },
     logo: {
-        width: 44,
-        height: 44,
-        borderRadius: theme.radius.sm,
+        width: 58,
+        height: 58,
+        borderRadius: theme.radius.md,
+        ...theme.shadow.sm,
     },
     greeting: {
         color: theme.colors.textFaint,

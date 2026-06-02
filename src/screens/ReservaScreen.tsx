@@ -73,7 +73,7 @@ const formatCurrency = (value: number): string =>
     `R$ ${value.toFixed(2).replace('.', ',')}`;
 
 export default function ReservaScreen() {
-    const [accountBalance, setAccountBalance] = useState<number>(8200);
+    const [accountBalance, setAccountBalance] = useState<number>(0);
     const [selectedObjective, setSelectedObjective] = useState<string>('Reserva de emergencia');
     const [isLoaded, setIsLoaded] = useState(false);
 
@@ -88,7 +88,7 @@ export default function ReservaScreen() {
             const accountSaved = await AsyncStorage.getItem(ACCOUNT_STORAGE_KEY);
             if (accountSaved) {
                 const parsedAccount = JSON.parse(accountSaved);
-                setAccountBalance(parsedAccount.balance ?? 8200);
+                setAccountBalance(parsedAccount.balance ?? 0);
             }
         } catch (error) {
             console.error('[ReservaScreen] Erro ao carregar reserva:', error);
@@ -233,9 +233,10 @@ const styles = StyleSheet.create({
         gap: theme.spacing.md,
     },
     logo: {
-        width: 44,
-        height: 44,
-        borderRadius: theme.radius.sm,
+        width: 58,
+        height: 58,
+        borderRadius: theme.radius.md,
+        ...theme.shadow.sm,
     },
     kicker: {
         color: theme.colors.success,

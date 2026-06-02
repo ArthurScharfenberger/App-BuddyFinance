@@ -133,9 +133,10 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.xxl,
     },
     logo: {
-        width: 120,
-        height: 40,
+        width: 170,
+        height: 58,
         marginBottom: theme.spacing.xl,
+        ...theme.shadow.sm,
     },
     title: {
         fontSize: theme.typography.xxl,

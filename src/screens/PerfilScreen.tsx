@@ -24,6 +24,8 @@ import { theme } from '../theme/colors';
 
 const STORAGE_KEY       = '@buddyfinance:data_v2';
 const PROFILE_KEY       = '@buddyfinance:profile';
+const RESERVE_KEY       = '@buddyfinance:emergency_reserve_v1';
+const ONBOARDING_KEY    = '@buddyfinance:onboarding_profile_v1';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -144,7 +146,7 @@ export default function PerfilScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await AsyncStorage.removeItem(STORAGE_KEY);
+                            await AsyncStorage.multiRemove([STORAGE_KEY, RESERVE_KEY, ONBOARDING_KEY]);
                             Alert.alert('Pronto', 'Todos os dados foram removidos.');
                         } catch (error) {
                             console.error('[PerfilScreen] Erro ao limpar dados:', error);

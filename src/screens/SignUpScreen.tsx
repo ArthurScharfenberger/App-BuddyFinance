@@ -25,8 +25,8 @@ export default function SignUpScreen() {
     const handleSignUp = () => {
         // Lógica de cadastro aqui
         console.log('Cadastro com:', name, email, password);
-        // Por enquanto, apenas navega para a Home
-        navigation.navigate('MainTabs');
+        // Por enquanto, continua para o diagnóstico inicial
+        navigation.navigate('OnboardingIncome');
     };
 
     return (
@@ -127,9 +127,10 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.xxl,
     },
     logo: {
-        width: 120,
-        height: 40,
+        width: 170,
+        height: 58,
         marginBottom: theme.spacing.xl,
+        ...theme.shadow.sm,
     },
     title: {
         fontSize: theme.typography.xxl,
