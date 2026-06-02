@@ -89,7 +89,7 @@ const MARKET_MOVERS = [
         change: '-4,7%',
         direction: 'down',
         note: 'Queda entre criptoativos',
-        icon: 'logo-ethereum' as const,
+        icon: 'diamond-outline' as const,
     },
 ] as const;
 
@@ -139,6 +139,22 @@ export default function HomeScreen() {
 
     // Animação da barra de orçamento
     const budgetAnimRef = useRef(new Animated.Value(0)).current;
+
+    // ── Cálculos derivados ────────────────────────────────────────────────────
+
+    const totalReceitas = transactions
+        .filter(t => t.type === 'receita')
+        .reduce((acc, t) => acc + t.amount, 0);
+
+    const totalDespesas = transactions
+        .filter(t => t.type === 'despesa')
+        .reduce((acc, t) => acc + t.amount, 0);
+
+    const percentualGasto = totalReceitas > 0
+        ? Math.min(totalDespesas / totalReceitas, 1)
+        : 0;
+
+    const mascot = getMascotMessage(balance, percentualGasto);
 
     // ── Persistência ──────────────────────────────────────────────────────────
 
@@ -228,22 +244,6 @@ export default function HomeScreen() {
         setInitialDescription(desc);
         setModalVisible(true);
     }, []);
-
-    // ── Cálculos derivados ────────────────────────────────────────────────────
-
-    const totalReceitas = transactions
-        .filter(t => t.type === 'receita')
-        .reduce((acc, t) => acc + t.amount, 0);
-
-    const totalDespesas = transactions
-        .filter(t => t.type === 'despesa')
-        .reduce((acc, t) => acc + t.amount, 0);
-
-    const percentualGasto = totalReceitas > 0
-        ? Math.min(totalDespesas / totalReceitas, 1)
-        : 0;
-
-    const mascot = getMascotMessage(balance, percentualGasto);
 
     // ── Render ────────────────────────────────────────────────────────────────
 
