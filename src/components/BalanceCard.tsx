@@ -14,11 +14,23 @@ interface BalanceCardProps {
     balance: string;
     receitas: string;
     despesas: string;
+    totalReceitas?: number;
+    totalBalance?: number;
+    showSummary?: boolean;
 }
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
-export default function BalanceCard({ balance, receitas, despesas }: BalanceCardProps) {
+export default function BalanceCard({
+    balance,
+    receitas,
+    despesas,
+    totalReceitas = 0,
+    totalBalance = 0,
+    showSummary = true,
+}: BalanceCardProps) {
+    const receitasIsNegative = totalReceitas < 0;
+    const balanceIsNegative = totalBalance < 0;
     return (
         <View style={styles.card}>
 
@@ -29,31 +41,50 @@ export default function BalanceCard({ balance, receitas, despesas }: BalanceCard
             </View>
 
             {/* Valor principal */}
-            <Text style={styles.balance}>{balance}</Text>
+            <Text style={[
+                styles.balance,
+                !showSummary ? styles.balanceOnly : undefined,
+                balanceIsNegative ? { color: theme.colors.danger } : undefined
+            ]}>
+                {balance}
+            </Text>
 
-            {/* Divisor */}
-            <View style={styles.divider} />
+            {showSummary && (
+                <>
+                    {/* Divisor */}
+                    <View style={styles.divider} />
 
-            {/* Resumo: receitas e despesas lado a lado */}
-            <View style={styles.summaryRow}>
-                <View style={styles.summaryItem}>
-                    <View style={styles.summaryIconRow}>
-                        <Ionicons name="arrow-up-circle-outline" size={14} color="rgba(255,255,255,0.8)" />
-                        <Text style={styles.summaryLabel}>Receitas</Text>
+                    {/* Resumo: receitas e despesas lado a lado */}
+                    <View style={styles.summaryRow}>
+                        <View style={styles.summaryItem}>
+                            <View style={styles.summaryIconRow}>
+                                <Ionicons
+                                    name="arrow-up-circle-outline"
+                                    size={14}
+                                    color={receitasIsNegative ? theme.colors.danger : theme.colors.success}
+                                />
+                                <Text style={styles.summaryLabel}>Receitas</Text>
+                            </View>
+                            <Text style={[
+                                styles.summaryValue,
+                                receitasIsNegative ? { color: theme.colors.danger } : undefined
+                            ]}>
+                                {receitas}
+                            </Text>
+                        </View>
+
+                        <View style={styles.summaryDivider} />
+
+                        <View style={styles.summaryItem}>
+                            <View style={styles.summaryIconRow}>
+                                <Ionicons name="arrow-down-circle-outline" size={14} color={theme.colors.danger} />
+                                <Text style={styles.summaryLabel}>Despesas</Text>
+                            </View>
+                            <Text style={styles.summaryValue}>{despesas}</Text>
+                        </View>
                     </View>
-                    <Text style={styles.summaryValue}>{receitas}</Text>
-                </View>
-
-                <View style={styles.summaryDivider} />
-
-                <View style={styles.summaryItem}>
-                    <View style={styles.summaryIconRow}>
-                        <Ionicons name="arrow-down-circle-outline" size={14} color="rgba(255,255,255,0.8)" />
-                        <Text style={styles.summaryLabel}>Despesas</Text>
-                    </View>
-                    <Text style={styles.summaryValue}>{despesas}</Text>
-                </View>
-            </View>
+                </>
+            )}
 
         </View>
     );
@@ -67,7 +98,7 @@ const styles = StyleSheet.create({
         padding: theme.spacing.xl,
         borderRadius: theme.radius.xxl,
         marginBottom: theme.spacing.lg,
-        borderWidth: 1,
+        borderWidth: 2,
         borderColor: theme.colors.primary,
         ...theme.shadow.lg,
     },
@@ -91,6 +122,9 @@ const styles = StyleSheet.create({
         fontSize: theme.typography.xxxl,
         fontWeight: theme.typography.black,
         marginBottom: theme.spacing.lg,
+    },
+    balanceOnly: {
+        marginBottom: 0,
     },
     divider: {
         height: 1,

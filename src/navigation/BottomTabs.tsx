@@ -12,12 +12,13 @@ import { Platform, StyleSheet, View } from 'react-native';
 import EducacaoScreen     from '../screens/EducacaoScreen';
 import HomeScreen         from '../screens/HomeScreen';
 import PerfilScreen       from '../screens/PerfilScreen';
+import ReservaScreen      from '../screens/ReservaScreen';
 import TransacoesScreen   from '../screens/TransacoesScreen';
 import { theme }          from '../theme/colors';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-type TabName = 'Início' | 'Histórico' | 'Aprender' | 'Perfil';
+type TabName = 'Início' | 'Histórico' | 'Reserva' | 'Aprender' | 'Perfil';
 
 // ── Mapa de ícones ────────────────────────────────────────────────────────────
 
@@ -25,10 +26,11 @@ const TAB_ICONS: Record<TabName, {
     active:   keyof typeof Ionicons.glyphMap;
     inactive: keyof typeof Ionicons.glyphMap;
 }> = {
-    'Início':    { active: 'home',          inactive: 'home-outline'          },
-    'Histórico': { active: 'list',          inactive: 'list-outline'          },
-    'Aprender':  { active: 'book',          inactive: 'book-outline'          },
-    'Perfil':    { active: 'person',        inactive: 'person-outline'        },
+    'Início':    { active: 'home',               inactive: 'home-outline'               },
+    'Histórico': { active: 'list',               inactive: 'list-outline'               },
+    'Reserva':   { active: 'shield-checkmark',   inactive: 'shield-checkmark-outline'   },
+    'Aprender':  { active: 'book',               inactive: 'book-outline'               },
+    'Perfil':    { active: 'person',             inactive: 'person-outline'             },
 };
 
 // ── Navigator ─────────────────────────────────────────────────────────────────
@@ -86,6 +88,7 @@ export default function BottomTabs() {
         >
             <Tab.Screen name="Início"    component={HomeScreen}          />
             <Tab.Screen name="Histórico" component={TransacoesScreen}    />
+            <Tab.Screen name="Reserva"   component={ReservaScreen}       />
             <Tab.Screen name="Aprender"  component={EducacaoScreen}      />
             <Tab.Screen name="Perfil"    component={PerfilScreen}        />
         </Tab.Navigator>

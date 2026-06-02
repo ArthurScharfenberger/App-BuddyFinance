@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+    Animated,
     Image,
     RefreshControl,
     SafeAreaView,
@@ -48,6 +49,7 @@ const MARKET_MOVERS = [
         change: '+7,8%',
         direction: 'up',
         note: 'Alta forte em cripto',
+        icon: 'logo-bitcoin' as const,
     },
     {
         symbol: 'NVDA',
@@ -57,6 +59,7 @@ const MARKET_MOVERS = [
         change: '+5,4%',
         direction: 'up',
         note: 'Tecnologia em destaque',
+        icon: 'hardware-chip' as const,
     },
     {
         symbol: 'SOL',
@@ -66,6 +69,7 @@ const MARKET_MOVERS = [
         change: '-6,2%',
         direction: 'down',
         note: 'Correção no dia',
+        icon: 'cube' as const,
     },
     {
         symbol: 'PETR4',
@@ -75,6 +79,7 @@ const MARKET_MOVERS = [
         change: '+3,1%',
         direction: 'up',
         note: 'Volume acima da média',
+        icon: 'flame' as const,
     },
     {
         symbol: 'ETH',
@@ -84,6 +89,7 @@ const MARKET_MOVERS = [
         change: '-4,7%',
         direction: 'down',
         note: 'Queda entre criptoativos',
+        icon: 'logo-ethereum' as const,
     },
 ] as const;
 
@@ -131,6 +137,9 @@ export default function HomeScreen() {
     const [transactionType, setTransactionType] = useState<TransactionType>('receita');
     const [initialDescription, setInitialDescription] = useState('');
 
+    // Animação da barra de orçamento
+    const budgetAnimRef = useRef(new Animated.Value(0)).current;
+
     // ── Persistência ──────────────────────────────────────────────────────────
 
     const loadData = useCallback(async () => {
@@ -173,6 +182,15 @@ export default function HomeScreen() {
 
         return () => clearInterval(timer);
     }, [marketStep]);
+
+    // Animar barra de orçamento quando percentual mudar
+    useEffect(() => {
+        Animated.timing(budgetAnimRef, {
+            toValue: percentualGasto * 100,
+            duration: 800,
+            useNativeDriver: false,
+        }).start();
+    }, [percentualGasto, budgetAnimRef]);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -272,7 +290,77 @@ export default function HomeScreen() {
                 {/* ── Mascote ── */}
                 <BuddyMascot message={mascot.message} variant={mascot.variant} />
 
+                {/* ── Barra de uso do orçamento ── */}
+                <View style={styles.budgetCard}>
+                    <View style={styles.budgetRow}>
+                        <View style={styles.budgetLabelRow}>
+                            <Ionicons 
+                                name="pie-chart-outline" 
+                                size={18} 
+                                color={theme.colors.primary}
+                                style={styles.budgetIcon}
+                            />
+                            <Text style={styles.budgetLabel}>Uso do Orçamento</Text>
+                        </View>
+                        <Text style={[
+                            styles.budgetPercent,
+                            {
+                                color: percentualGasto > 0.8
+                                    ? theme.colors.danger
+                                    : percentualGasto > 0.5
+                                    ? theme.colors.warning
+                                    : theme.colors.success,
+                            },
+                        ]}>
+                            {(percentualGasto * 100).toFixed(0)}%
+                        </Text>
+                    </View>
+                    <View style={styles.progressBg}>
+                        <Animated.View style={[
+                            styles.progressFill,
+                            {
+                                width: budgetAnimRef.interpolate({
+                                    inputRange: [0, 100],
+                                    outputRange: ['0%', '100%'],
+                                }),
+                                backgroundColor: percentualGasto > 0.8
+                                    ? theme.colors.danger
+                                    : percentualGasto > 0.5
+                                    ? theme.colors.warning
+                                    : theme.colors.success,
+                            },
+                        ]} />
+                    </View>
+                </View>
+
                 {/* ── Card de saldo ── */}
+                <BalanceCard
+                    balance={formatCurrency(balance)}
+                    receitas={formatCurrency(totalReceitas)}
+                    despesas={formatCurrency(totalDespesas)}
+                    totalReceitas={totalReceitas}
+                    totalBalance={balance}
+                />
+
+                {/* ── Botões de ação ── */}
+                <View style={styles.actionRow}>
+                    <CustomButton
+                        title="Receita"
+                        variant="primary"
+                        icon="add-circle-outline"
+                        accessibilityLabel="Adicionar receita"
+                        onPress={() => openModal('receita')}
+                    />
+                    <CustomButton
+                        title="Despesa"
+                        variant="danger"
+                        icon="remove-circle-outline"
+                        accessibilityLabel="Adicionar despesa"
+                        onPress={() => openModal('despesa')}
+                    />
+                </View>
+
+                {/* ── Carrossel de Mercado ── */}
                 <View style={styles.marketSection}>
                     <View style={styles.marketHeader}>
                         <Text style={[styles.sectionTitle, styles.marketTitle]}>
@@ -309,7 +397,7 @@ export default function HomeScreen() {
                                                 { backgroundColor: accentColor + '18' },
                                             ]}>
                                                 <Ionicons
-                                                    name={isUp ? 'trending-up' : 'trending-down'}
+                                                    name={asset.icon}
                                                     size={24}
                                                     color={accentColor}
                                                 />
@@ -353,51 +441,6 @@ export default function HomeScreen() {
                             />
                         ))}
                     </View>
-                </View>
-
-                <BalanceCard
-                    balance={formatCurrency(balance)}
-                    receitas={formatCurrency(totalReceitas)}
-                    despesas={formatCurrency(totalDespesas)}
-                />
-
-                {/* ── Barra de uso do orçamento ── */}
-                <View style={styles.budgetCard}>
-                    <View style={styles.budgetRow}>
-                        <Text style={styles.budgetLabel}>Uso do Orçamento</Text>
-                        <Text style={styles.budgetPercent}>
-                            {(percentualGasto * 100).toFixed(0)}%
-                        </Text>
-                    </View>
-                    <View style={styles.progressBg}>
-                        <View style={[
-                            styles.progressFill,
-                            {
-                                width: `${percentualGasto * 100}%` as any,
-                                backgroundColor: percentualGasto > 0.8
-                                    ? theme.colors.danger
-                                    : theme.colors.success,
-                            },
-                        ]} />
-                    </View>
-                </View>
-
-                {/* ── Botões de ação ── */}
-                <View style={styles.actionRow}>
-                    <CustomButton
-                        title="Receita"
-                        variant="primary"
-                        icon="add-circle-outline"
-                        accessibilityLabel="Adicionar receita"
-                        onPress={() => openModal('receita')}
-                    />
-                    <CustomButton
-                        title="Despesa"
-                        variant="danger"
-                        icon="remove-circle-outline"
-                        accessibilityLabel="Adicionar despesa"
-                        onPress={() => openModal('despesa')}
-                    />
                 </View>
 
                 {/* ── Atalhos de categoria ── */}
@@ -646,34 +689,45 @@ const styles = StyleSheet.create({
 
     budgetCard: {
         backgroundColor: theme.colors.surface,
-        padding: theme.spacing.base,
+        padding: theme.spacing.base + theme.spacing.sm,
         borderRadius: theme.radius.xl,
         marginBottom: theme.spacing.lg,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        ...theme.shadow.sm,
+        borderWidth: 2,
+        borderColor: theme.colors.primary,
+        ...theme.shadow.lg,
     },
     budgetRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: theme.spacing.sm,
     },
-    budgetLabel: {
-        color: theme.colors.textMuted,
-        fontFamily: theme.typography.fontFamily.body,
-        fontSize: theme.typography.sm,
+    budgetLabelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.xs,
     },
-    budgetPercent: {
+    budgetIcon: {
+        marginRight: theme.spacing.xs,
+    },
+    budgetLabel: {
         color: theme.colors.textPrimary,
         fontFamily: theme.typography.fontFamily.brand,
         fontSize: theme.typography.sm,
-        fontWeight: theme.typography.semibold,
+        fontWeight: theme.typography.bold,
+    },
+    budgetPercent: {
+        fontFamily: theme.typography.fontFamily.brand,
+        fontSize: theme.typography.xl,
+        fontWeight: theme.typography.black,
     },
     progressBg: {
-        height: 10,
+        height: 12,
         backgroundColor: theme.colors.backgroundSoft,
         borderRadius: theme.radius.pill,
         overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: theme.colors.border,
     },
     progressFill: {
         height: '100%',
