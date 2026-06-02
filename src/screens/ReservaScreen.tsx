@@ -1,11 +1,12 @@
 // =============================================================================
 // BuddyFinance App - src/screens/ReservaScreen.tsx
-// Area de reserva com saldo disponivel e escolha de objetivo para a caixinha.
+// Area de reserva com multiplas caixinhas e saldo disponivel.
 // =============================================================================
 
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     Alert,
     Image,
@@ -23,6 +24,31 @@ import { theme } from '../theme/colors';
 const STORAGE_KEY = '@buddyfinance:emergency_reserve_v1';
 const ACCOUNT_STORAGE_KEY = '@buddyfinance:data_v2';
 const QUICK_DEPOSITS = [50, 100, 200] as const;
+
+type ReserveBox = {
+    id: string;
+    title: string;
+    subtitle: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    color: string;
+    currentValue: number;
+    createdAt: string;
+};
+
+type TransactionType = 'receita' | 'despesa';
+
+type StoredAccountData = {
+    transactions: TransactionRecord[];
+    balance: number;
+};
+
+type TransactionRecord = {
+    id: string;
+    title: string;
+    amount: number;
+    type: TransactionType;
+    date: string;
+};
 
 type ObjectiveOption = {
     title: string;
@@ -46,24 +72,6 @@ const OBJECTIVE_OPTIONS: ObjectiveOption[] = [
         color: theme.colors.primary,
     },
     {
-        title: 'Reformar a casa',
-        subtitle: 'Melhorias e conforto',
-        icon: 'home-outline',
-        color: theme.colors.warning,
-    },
-    {
-        title: 'Focar nos estudos',
-        subtitle: 'Cursos, livros e futuro',
-        icon: 'school-outline',
-        color: '#8B5CF6',
-    },
-    {
-        title: 'Meu sonho',
-        subtitle: 'Um objetivo especial',
-        icon: 'sparkles-outline',
-        color: '#F472B6',
-    },
-    {
         title: 'Outro',
         subtitle: 'Criar uma nova caixinha',
         icon: 'add-outline',
@@ -75,40 +83,93 @@ const OBJECTIVE_OPTIONS: ObjectiveOption[] = [
 const formatCurrency = (value: number): string =>
     `R$ ${value.toFixed(2).replace('.', ',')}`;
 
+const parseCurrencyInput = (value: string): number =>
+    Number(value.replace(/\./g, '').replace(',', '.'));
+
+const createReserveTransaction = (
+    amount: number,
+    type: TransactionType,
+    title: string,
+): TransactionRecord => ({
+    id: Date.now().toString(),
+    title,
+    amount,
+    type,
+    date: new Date().toISOString(),
+});
+
+const createBoxFromOption = (option: ObjectiveOption, customName?: string): ReserveBox => {
+    const isCustom = option.isCustom;
+    const title = isCustom ? (customName?.trim() || 'Minha caixinha') : option.title;
+
+    return {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        title,
+        subtitle: isCustom ? 'Objetivo personalizado' : option.subtitle,
+        icon: isCustom ? 'albums-outline' : option.icon,
+        color: isCustom ? theme.colors.primary : option.color,
+        currentValue: 0,
+        createdAt: new Date().toISOString(),
+    };
+};
+
 export default function ReservaScreen() {
     const [accountBalance, setAccountBalance] = useState<number>(0);
-    const [reserveBalance, setReserveBalance] = useState<number>(0);
-    const [selectedObjective, setSelectedObjective] = useState<string>('');
-    const [boxDescription, setBoxDescription] = useState<string>('');
+    const [boxes, setBoxes] = useState<ReserveBox[]>([]);
+    const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
     const [customMode, setCustomMode] = useState(false);
     const [customName, setCustomName] = useState('');
+    const [depositValue, setDepositValue] = useState('');
+    const [withdrawValue, setWithdrawValue] = useState('');
     const [isLoaded, setIsLoaded] = useState(false);
 
-    const activeBox = useMemo(() => {
-        if (!selectedObjective) return null;
+    const selectedBox = useMemo(
+        () => boxes.find(box => box.id === selectedBoxId) ?? null,
+        [boxes, selectedBoxId]
+    );
 
-        return OBJECTIVE_OPTIONS.find(item => item.title === selectedObjective) ?? {
-            title: selectedObjective,
-            subtitle: boxDescription || 'Caixinha personalizada',
-            icon: 'albums-outline' as keyof typeof Ionicons.glyphMap,
-            color: theme.colors.primary,
-        };
-    }, [boxDescription, selectedObjective]);
+    const depositAmount = parseCurrencyInput(depositValue);
+    const canDepositCustom = depositValue.trim().length > 0
+        && Number.isFinite(depositAmount)
+        && depositAmount > 0
+        && depositAmount <= accountBalance;
+
+    const withdrawAmount = parseCurrencyInput(withdrawValue);
+    const canWithdrawCustom = Boolean(selectedBox)
+        && withdrawValue.trim().length > 0
+        && Number.isFinite(withdrawAmount)
+        && withdrawAmount > 0
+        && withdrawAmount <= (selectedBox?.currentValue ?? 0);
 
     const loadReserve = useCallback(async () => {
         try {
             const saved = await AsyncStorage.getItem(STORAGE_KEY);
             if (saved) {
                 const parsed = JSON.parse(saved);
-                setReserveBalance(parsed.currentValue ?? 0);
-                setSelectedObjective(parsed.boxName ?? '');
-                setBoxDescription(parsed.boxDescription ?? '');
+
+                if (Array.isArray(parsed.boxes)) {
+                    setBoxes(parsed.boxes);
+                } else if (parsed.boxName || parsed.currentValue > 0) {
+                    setBoxes([{
+                        id: 'legacy-reserve',
+                        title: parsed.boxName ?? 'Reserva de emergencia',
+                        subtitle: parsed.boxDescription ?? 'Protecao para imprevistos',
+                        icon: 'shield-checkmark-outline',
+                        color: theme.colors.success,
+                        currentValue: parsed.currentValue ?? 0,
+                        createdAt: new Date().toISOString(),
+                    }]);
+                }
+            } else {
+                setBoxes([]);
             }
 
             const accountSaved = await AsyncStorage.getItem(ACCOUNT_STORAGE_KEY);
             if (accountSaved) {
                 const parsedAccount = JSON.parse(accountSaved);
                 setAccountBalance(parsedAccount.balance ?? 0);
+            } else {
+                setAccountBalance(0);
             }
         } catch (error) {
             console.error('[ReservaScreen] Erro ao carregar reserva:', error);
@@ -117,109 +178,205 @@ export default function ReservaScreen() {
         }
     }, []);
 
-    const saveReserve = useCallback(async (
-        nextReserveBalance: number,
-        nextName: string,
-        nextDescription: string,
-    ) => {
+    const saveBoxes = useCallback(async (nextBoxes: ReserveBox[]) => {
         try {
-            const saved = await AsyncStorage.getItem(STORAGE_KEY);
-            const currentData = saved ? JSON.parse(saved) : {};
-
             await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({
-                ...currentData,
-                currentValue: nextReserveBalance,
-                boxName: nextName,
-                boxDescription: nextDescription,
+                boxes: nextBoxes,
+                updatedAt: new Date().toISOString(),
             }));
         } catch (error) {
             console.error('[ReservaScreen] Erro ao salvar reserva:', error);
         }
     }, []);
 
-    const saveAccountBalance = useCallback(async (nextBalance: number) => {
+    const saveAccountData = useCallback(async (
+        nextBalance: number,
+        nextTransaction?: TransactionRecord,
+    ) => {
         try {
             const saved = await AsyncStorage.getItem(ACCOUNT_STORAGE_KEY);
-            const currentData = saved ? JSON.parse(saved) : { transactions: [], balance: 0 };
+            const currentData: StoredAccountData = saved
+                ? JSON.parse(saved)
+                : { transactions: [], balance: 0 };
+
+            const nextTransactions = nextTransaction
+                ? [nextTransaction, ...(currentData.transactions ?? [])]
+                : currentData.transactions ?? [];
 
             await AsyncStorage.setItem(ACCOUNT_STORAGE_KEY, JSON.stringify({
                 ...currentData,
+                transactions: nextTransactions,
                 balance: nextBalance,
             }));
         } catch (error) {
-            console.error('[ReservaScreen] Erro ao salvar saldo disponível:', error);
+            console.error('[ReservaScreen] Erro ao salvar saldo disponivel:', error);
         }
     }, []);
 
-    const createBox = useCallback(async (objective: ObjectiveOption) => {
+    const persistState = useCallback(async (
+        nextBoxes: ReserveBox[],
+        nextAccountBalance: number,
+        nextTransaction?: TransactionRecord,
+    ) => {
+        setBoxes(nextBoxes);
+        setAccountBalance(nextAccountBalance);
+
+        await Promise.all([
+            saveBoxes(nextBoxes),
+            saveAccountData(nextAccountBalance, nextTransaction),
+        ]);
+    }, [saveAccountData, saveBoxes]);
+
+    const handleCreateBox = useCallback(async (objective: ObjectiveOption) => {
         if (objective.isCustom) {
             setCustomMode(true);
-            setSelectedObjective('');
-            setBoxDescription('');
             return;
         }
 
-        setCustomMode(false);
-        setCustomName('');
-        setSelectedObjective(objective.title);
-        setBoxDescription(objective.subtitle);
-        await saveReserve(reserveBalance, objective.title, objective.subtitle);
-    }, [reserveBalance, saveReserve]);
-
-    const createCustomBox = useCallback(async () => {
-        const nextName = customName.trim() || 'Minha caixinha';
-        const nextDescription = 'Objetivo personalizado';
+        const nextBox = createBoxFromOption(objective);
+        const nextBoxes = [nextBox, ...boxes];
 
         setCustomMode(false);
-        setSelectedObjective(nextName);
-        setBoxDescription(nextDescription);
+        setSelectedBoxId(nextBox.id);
+        await saveBoxes(nextBoxes);
+        setBoxes(nextBoxes);
+    }, [boxes, saveBoxes]);
+
+    const handleCreateCustomBox = useCallback(async () => {
+        const customOption = OBJECTIVE_OPTIONS.find(option => option.isCustom);
+        if (!customOption) return;
+
+        const nextBox = createBoxFromOption(customOption, customName);
+        const nextBoxes = [nextBox, ...boxes];
+
         setCustomName('');
-        await saveReserve(reserveBalance, nextName, nextDescription);
-    }, [customName, reserveBalance, saveReserve]);
+        setCustomMode(false);
+        setSelectedBoxId(nextBox.id);
+        await saveBoxes(nextBoxes);
+        setBoxes(nextBoxes);
+    }, [boxes, customName, saveBoxes]);
+
+    const updateSelectedBoxValue = useCallback(async (
+        nextValue: number,
+        nextAccountBalance: number,
+        nextTransaction?: TransactionRecord,
+    ) => {
+        if (!selectedBox) return;
+
+        const nextBoxes = boxes.map(box =>
+            box.id === selectedBox.id
+                ? { ...box, currentValue: nextValue }
+                : box
+        );
+
+        await persistState(nextBoxes, nextAccountBalance, nextTransaction);
+    }, [boxes, persistState, selectedBox]);
 
     const handleDeposit = useCallback(async (amount: number) => {
-        if (!activeBox) return;
+        if (!selectedBox) return;
 
-        if (amount > accountBalance) {
-            Alert.alert('Saldo insuficiente', 'Você ainda não tem saldo disponível para guardar esse valor.');
+        if (!Number.isFinite(amount) || amount <= 0) {
+            Alert.alert('Valor invalido', 'Digite um valor maior que zero.');
             return;
         }
 
-        const nextAccountBalance = accountBalance - amount;
-        const nextReserveBalance = reserveBalance + amount;
+        if (amount > accountBalance) {
+            Alert.alert('Saldo insuficiente', 'Voce ainda nao tem saldo disponivel para guardar esse valor.');
+            return;
+        }
 
-        setAccountBalance(nextAccountBalance);
-        setReserveBalance(nextReserveBalance);
+        await updateSelectedBoxValue(
+            selectedBox.currentValue + amount,
+            accountBalance - amount,
+            createReserveTransaction(amount, 'despesa', 'Reserva'),
+        );
+        setDepositValue('');
+    }, [accountBalance, selectedBox, updateSelectedBoxValue]);
 
-        await Promise.all([
-            saveAccountBalance(nextAccountBalance),
-            saveReserve(nextReserveBalance, activeBox.title, activeBox.subtitle),
-        ]);
-    }, [accountBalance, activeBox, reserveBalance, saveAccountBalance, saveReserve]);
+    const handleCustomDeposit = useCallback(async () => {
+        await handleDeposit(parseCurrencyInput(depositValue));
+    }, [depositValue, handleDeposit]);
+
+    const handleWithdraw = useCallback(async (amount: number) => {
+        if (!selectedBox) return;
+
+        if (!Number.isFinite(amount) || amount <= 0) {
+            Alert.alert('Valor invalido', 'Digite um valor maior que zero.');
+            return;
+        }
+
+        if (amount > selectedBox.currentValue) {
+            Alert.alert('Valor indisponivel', 'Essa caixinha nao tem esse valor guardado.');
+            return;
+        }
+
+        await updateSelectedBoxValue(
+            selectedBox.currentValue - amount,
+            accountBalance + amount,
+            createReserveTransaction(amount, 'receita', 'Resgate da reserva'),
+        );
+        setWithdrawValue('');
+    }, [accountBalance, selectedBox, updateSelectedBoxValue]);
+
+    const handleCustomWithdraw = useCallback(async () => {
+        await handleWithdraw(parseCurrencyInput(withdrawValue));
+    }, [handleWithdraw, withdrawValue]);
 
     const handleWithdrawAll = useCallback(async () => {
-        if (!activeBox || reserveBalance <= 0) return;
+        if (!selectedBox || selectedBox.currentValue <= 0) return;
 
-        const nextAccountBalance = accountBalance + reserveBalance;
+        await updateSelectedBoxValue(
+            0,
+            accountBalance + selectedBox.currentValue,
+            createReserveTransaction(selectedBox.currentValue, 'receita', 'Resgate da reserva'),
+        );
+        setWithdrawValue('');
+    }, [accountBalance, selectedBox, updateSelectedBoxValue]);
 
-        setAccountBalance(nextAccountBalance);
-        setReserveBalance(0);
+    const handleDeleteBox = useCallback(() => {
+        if (!selectedBox) return;
 
-        await Promise.all([
-            saveAccountBalance(nextAccountBalance),
-            saveReserve(0, activeBox.title, activeBox.subtitle),
-        ]);
-    }, [accountBalance, activeBox, reserveBalance, saveAccountBalance, saveReserve]);
+        Alert.alert(
+            'Excluir caixinha',
+            selectedBox.currentValue > 0
+                ? 'O valor guardado volta para o saldo disponivel. Deseja excluir?'
+                : 'Deseja excluir essa caixinha?',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Excluir',
+                    style: 'destructive',
+                    onPress: async () => {
+                        const nextBoxes = boxes.filter(box => box.id !== selectedBox.id);
+                        const nextAccountBalance = accountBalance + selectedBox.currentValue;
 
-    const handleChangeObjective = useCallback(() => {
-        setSelectedObjective('');
-        setBoxDescription('');
-        setCustomMode(false);
+                        setSelectedBoxId(null);
+                        setDepositValue('');
+                        setWithdrawValue('');
+                        await persistState(
+                            nextBoxes,
+                            nextAccountBalance,
+                            selectedBox.currentValue > 0
+                                ? createReserveTransaction(selectedBox.currentValue, 'receita', 'Resgate da reserva')
+                                : undefined,
+                        );
+                    },
+                },
+            ]
+        );
+    }, [accountBalance, boxes, persistState, selectedBox]);
+
+    const handleBackToBoxes = useCallback(() => {
+        setSelectedBoxId(null);
+        setDepositValue('');
+        setWithdrawValue('');
     }, []);
 
-    useEffect(() => {
-        loadReserve();
-    }, [loadReserve]);
+    useFocusEffect(
+        useCallback(() => {
+            loadReserve();
+        }, [loadReserve])
+    );
 
     if (!isLoaded) {
         return (
@@ -262,27 +419,39 @@ export default function ReservaScreen() {
                     showSummary={false}
                 />
 
-                {activeBox ? (
-                    <View style={styles.boxPanel}>
-                        <View style={styles.boxTopRow}>
-                            <View style={[styles.boxIcon, { backgroundColor: activeBox.color + '22' }]}>
-                                <Ionicons name={activeBox.icon} size={32} color={activeBox.color} />
+                {selectedBox ? (
+                    <View style={styles.detailPanel}>
+                        <TouchableOpacity
+                            style={styles.backButton}
+                            onPress={handleBackToBoxes}
+                            activeOpacity={0.78}
+                        >
+                            <Ionicons name="chevron-back-outline" size={18} color={theme.colors.primary} />
+                            <Text style={styles.backButtonText}>Minhas caixinhas</Text>
+                        </TouchableOpacity>
+
+                        <View style={styles.detailTopRow}>
+                            <View style={[styles.detailIcon, { backgroundColor: selectedBox.color + '22' }]}>
+                                <Ionicons name={selectedBox.icon} size={34} color={selectedBox.color} />
                             </View>
-                            <TouchableOpacity style={styles.changeButton} onPress={handleChangeObjective}>
-                                <Ionicons name="swap-horizontal-outline" size={16} color={theme.colors.primary} />
-                                <Text style={styles.changeButtonText}>Trocar</Text>
+                            <TouchableOpacity
+                                style={styles.deleteButton}
+                                onPress={handleDeleteBox}
+                                activeOpacity={0.78}
+                            >
+                                <Ionicons name="trash-outline" size={18} color={theme.colors.danger} />
                             </TouchableOpacity>
                         </View>
 
-                        <Text style={styles.boxTitle}>{activeBox.title}</Text>
-                        <Text style={styles.boxDescription}>{activeBox.subtitle}</Text>
+                        <Text style={styles.detailTitle}>{selectedBox.title}</Text>
+                        <Text style={styles.detailDescription}>{selectedBox.subtitle}</Text>
 
                         <View style={styles.reserveAmountCard}>
                             <Text style={styles.reserveAmountLabel}>Guardado nessa caixinha</Text>
-                            <Text style={styles.reserveAmountValue}>{formatCurrency(reserveBalance)}</Text>
+                            <Text style={styles.reserveAmountValue}>{formatCurrency(selectedBox.currentValue)}</Text>
                         </View>
 
-                        <Text style={styles.actionTitle}>Guardar dinheiro</Text>
+                        <Text style={styles.actionTitle}>Adicionar dinheiro</Text>
                         <View style={styles.depositGrid}>
                             {QUICK_DEPOSITS.map(amount => {
                                 const disabled = amount > accountBalance;
@@ -308,19 +477,80 @@ export default function ReservaScreen() {
                             })}
                         </View>
 
+                        <View style={styles.moneyRow}>
+                            <View style={styles.moneyInputWrap}>
+                                <Text style={styles.moneyPrefix}>R$</Text>
+                                <TextInput
+                                    style={styles.moneyInput}
+                                    value={depositValue}
+                                    onChangeText={setDepositValue}
+                                    placeholder="Digite o valor exato"
+                                    placeholderTextColor={theme.colors.textFaint}
+                                    keyboardType="numeric"
+                                />
+                            </View>
+                            <TouchableOpacity
+                                style={[
+                                    styles.moneyPrimaryButton,
+                                    !canDepositCustom && styles.moneyButtonDisabled,
+                                ]}
+                                onPress={handleCustomDeposit}
+                                disabled={!canDepositCustom}
+                                activeOpacity={0.78}
+                            >
+                                <Text style={[
+                                    styles.moneyPrimaryButtonText,
+                                    !canDepositCustom && styles.moneyButtonTextDisabled,
+                                ]}>
+                                    Guardar
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
                         {accountBalance <= 0 && (
                             <View style={styles.helperNotice}>
                                 <Ionicons name="information-circle-outline" size={18} color={theme.colors.primary} />
                                 <Text style={styles.helperNoticeText}>
-                                    Adicione uma receita no painel inicial para ter saldo disponível e guardar dinheiro.
+                                    Adicione uma receita no painel inicial para ter saldo disponivel e guardar dinheiro.
                                 </Text>
                             </View>
                         )}
 
+                        <Text style={styles.actionTitle}>Retirar dinheiro</Text>
+                        <View style={styles.moneyRow}>
+                            <View style={styles.moneyInputWrap}>
+                                <Text style={styles.moneyPrefix}>R$</Text>
+                                <TextInput
+                                    style={styles.moneyInput}
+                                    value={withdrawValue}
+                                    onChangeText={setWithdrawValue}
+                                    placeholder="Digite o valor exato"
+                                    placeholderTextColor={theme.colors.textFaint}
+                                    keyboardType="numeric"
+                                />
+                            </View>
+                            <TouchableOpacity
+                                style={[
+                                    styles.moneySecondaryButton,
+                                    !canWithdrawCustom && styles.moneyButtonDisabled,
+                                ]}
+                                onPress={handleCustomWithdraw}
+                                disabled={!canWithdrawCustom}
+                                activeOpacity={0.78}
+                            >
+                                <Text style={[
+                                    styles.moneySecondaryButtonText,
+                                    !canWithdrawCustom && styles.moneyButtonTextDisabled,
+                                ]}>
+                                    Retirar
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
                         <TouchableOpacity
-                            style={[styles.withdrawButton, reserveBalance <= 0 && styles.withdrawButtonDisabled]}
+                            style={[styles.withdrawButton, selectedBox.currentValue <= 0 && styles.withdrawButtonDisabled]}
                             onPress={handleWithdrawAll}
-                            disabled={reserveBalance <= 0}
+                            disabled={selectedBox.currentValue <= 0}
                             activeOpacity={0.78}
                         >
                             <Ionicons name="return-down-back-outline" size={18} color={theme.colors.primary} />
@@ -328,62 +558,95 @@ export default function ReservaScreen() {
                         </TouchableOpacity>
                     </View>
                 ) : (
-                    <View style={styles.objectiveSection}>
-                        <Text style={styles.objectiveTitle}>
-                            Qual e o seu objetivo para essa caixinha?
-                        </Text>
-
-                        {customMode && (
-                            <View style={styles.customCard}>
-                                <Text style={styles.customTitle}>Nome da sua caixinha</Text>
-                                <TextInput
-                                    style={styles.customInput}
-                                    value={customName}
-                                    onChangeText={setCustomName}
-                                    placeholder="Ex: Comprar notebook"
-                                    placeholderTextColor={theme.colors.textFaint}
-                                />
-                                <TouchableOpacity
-                                    style={styles.customCreateButton}
-                                    onPress={createCustomBox}
-                                    activeOpacity={0.78}
-                                >
-                                    <Text style={styles.customCreateText}>Criar caixinha</Text>
-                                </TouchableOpacity>
+                    <>
+                        {boxes.length > 0 && (
+                            <View style={styles.boxesSection}>
+                                <Text style={styles.sectionTitle}>Minhas caixinhas</Text>
+                                <View style={styles.boxGrid}>
+                                    {boxes.map(box => (
+                                        <TouchableOpacity
+                                            key={box.id}
+                                            style={styles.savedBoxCard}
+                                            activeOpacity={0.84}
+                                            onPress={() => setSelectedBoxId(box.id)}
+                                        >
+                                            <View style={[styles.savedBoxArt, { backgroundColor: box.color + '20' }]}>
+                                                <Ionicons name={box.icon} size={38} color={box.color} />
+                                                <Text style={styles.savedBoxAmount}>
+                                                    {formatCurrency(box.currentValue)}
+                                                </Text>
+                                            </View>
+                                            <Text style={styles.savedBoxName} numberOfLines={2}>
+                                                {box.title}
+                                            </Text>
+                                            <Text style={styles.savedBoxSubtitle} numberOfLines={2}>
+                                                {box.subtitle}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
                             </View>
                         )}
 
-                        <View style={styles.objectiveGrid}>
-                            {OBJECTIVE_OPTIONS.map((objective) => (
-                                <TouchableOpacity
-                                    key={objective.title}
-                                    style={styles.objectiveCard}
-                                    activeOpacity={0.84}
-                                    onPress={() => createBox(objective)}
-                                >
-                                    <View style={[
-                                        styles.objectiveArt,
-                                        objective.isCustom
-                                            ? styles.objectiveArtCustom
-                                            : { backgroundColor: objective.color + '20' },
-                                    ]}>
-                                        <Ionicons
-                                            name={objective.icon}
-                                            size={objective.isCustom ? 34 : 40}
-                                            color={objective.isCustom ? theme.colors.textPrimary : objective.color}
-                                        />
-                                    </View>
+                        <View style={styles.objectiveSection}>
+                            <Text style={styles.objectiveTitle}>
+                                {boxes.length > 0
+                                    ? 'Criar nova caixinha'
+                                    : 'Qual e o seu objetivo para essa caixinha?'}
+                            </Text>
 
-                                    <Text style={styles.objectiveName} numberOfLines={2}>
-                                        {objective.title}
-                                    </Text>
-                                    <Text style={styles.objectiveSubtitle} numberOfLines={2}>
-                                        {objective.subtitle}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
+                            {customMode && (
+                                <View style={styles.customCard}>
+                                    <Text style={styles.customTitle}>Nome da sua caixinha</Text>
+                                    <TextInput
+                                        style={styles.customInput}
+                                        value={customName}
+                                        onChangeText={setCustomName}
+                                        placeholder="Ex: Comprar notebook"
+                                        placeholderTextColor={theme.colors.textFaint}
+                                    />
+                                    <TouchableOpacity
+                                        style={styles.customCreateButton}
+                                        onPress={handleCreateCustomBox}
+                                        activeOpacity={0.78}
+                                    >
+                                        <Text style={styles.customCreateText}>Criar caixinha</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            <View style={styles.objectiveGrid}>
+                                {OBJECTIVE_OPTIONS.map((objective) => (
+                                    <TouchableOpacity
+                                        key={objective.title}
+                                        style={styles.objectiveCard}
+                                        activeOpacity={0.84}
+                                        onPress={() => handleCreateBox(objective)}
+                                    >
+                                        <View style={[
+                                            styles.objectiveArt,
+                                            objective.isCustom
+                                                ? styles.objectiveArtCustom
+                                                : { backgroundColor: objective.color + '20' },
+                                        ]}>
+                                            <Ionicons
+                                                name={objective.icon}
+                                                size={objective.isCustom ? 34 : 40}
+                                                color={objective.isCustom ? theme.colors.textPrimary : objective.color}
+                                            />
+                                        </View>
+
+                                        <Text style={styles.objectiveName} numberOfLines={2}>
+                                            {objective.title}
+                                        </Text>
+                                        <Text style={styles.objectiveSubtitle} numberOfLines={2}>
+                                            {objective.subtitle}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
                         </View>
-                    </View>
+                    </>
                 )}
             </ScrollView>
         </SafeAreaView>
@@ -416,6 +679,7 @@ const styles = StyleSheet.create({
         width: 58,
         height: 58,
         borderRadius: theme.radius.md,
+        backgroundColor: 'transparent',
         ...theme.shadow.sm,
     },
     kicker: {
@@ -442,6 +706,59 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.successMuted,
         borderWidth: 1,
         borderColor: theme.colors.success + '44',
+    },
+    sectionTitle: {
+        color: theme.colors.textPrimary,
+        fontFamily: theme.typography.fontFamily.brand,
+        fontSize: theme.typography.xxl,
+        fontWeight: theme.typography.black,
+        lineHeight: 36,
+        marginBottom: theme.spacing.lg,
+    },
+    boxesSection: {
+        marginTop: theme.spacing.sm,
+        marginBottom: theme.spacing.xxl,
+    },
+    boxGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        rowGap: theme.spacing.xl,
+    },
+    savedBoxCard: {
+        width: '47%',
+    },
+    savedBoxArt: {
+        width: '100%',
+        aspectRatio: 1.08,
+        borderRadius: theme.radius.xl,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: theme.colors.borderSoft,
+        marginBottom: theme.spacing.sm,
+        ...theme.shadow.sm,
+    },
+    savedBoxAmount: {
+        color: theme.colors.textPrimary,
+        fontFamily: theme.typography.fontFamily.brand,
+        fontSize: theme.typography.lg,
+        fontWeight: theme.typography.black,
+        marginTop: theme.spacing.md,
+    },
+    savedBoxName: {
+        color: theme.colors.textPrimary,
+        fontFamily: theme.typography.fontFamily.brand,
+        fontSize: theme.typography.sm,
+        fontWeight: theme.typography.bold,
+        lineHeight: 19,
+    },
+    savedBoxSubtitle: {
+        color: theme.colors.textFaint,
+        fontFamily: theme.typography.fontFamily.body,
+        fontSize: theme.typography.xs,
+        lineHeight: 17,
+        marginTop: theme.spacing.xs,
     },
     objectiveSection: {
         marginTop: theme.spacing.sm,
@@ -493,7 +810,7 @@ const styles = StyleSheet.create({
         lineHeight: 17,
         marginTop: theme.spacing.xs,
     },
-    boxPanel: {
+    detailPanel: {
         marginTop: theme.spacing.sm,
         padding: theme.spacing.xl,
         borderRadius: theme.radius.xxl,
@@ -502,13 +819,26 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.border,
         ...theme.shadow.md,
     },
-    boxTopRow: {
+    backButton: {
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.xs,
+        marginBottom: theme.spacing.lg,
+    },
+    backButtonText: {
+        color: theme.colors.primary,
+        fontFamily: theme.typography.fontFamily.body,
+        fontSize: theme.typography.sm,
+        fontWeight: theme.typography.bold,
+    },
+    detailTopRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: theme.spacing.lg,
     },
-    boxIcon: {
+    detailIcon: {
         width: 70,
         height: 70,
         borderRadius: theme.radius.xl,
@@ -517,31 +847,24 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.borderSoft,
     },
-    changeButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.xs,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
+    deleteButton: {
+        width: 44,
+        height: 44,
         borderRadius: theme.radius.pill,
-        backgroundColor: theme.colors.primaryMuted,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.backgroundSoft,
         borderWidth: 1,
         borderColor: theme.colors.border,
     },
-    changeButtonText: {
-        color: theme.colors.primary,
-        fontFamily: theme.typography.fontFamily.body,
-        fontSize: theme.typography.sm,
-        fontWeight: theme.typography.bold,
-    },
-    boxTitle: {
+    detailTitle: {
         color: theme.colors.textPrimary,
         fontFamily: theme.typography.fontFamily.brand,
         fontSize: theme.typography.xxl,
         fontWeight: theme.typography.black,
         lineHeight: 38,
     },
-    boxDescription: {
+    detailDescription: {
         color: theme.colors.textMuted,
         fontFamily: theme.typography.fontFamily.body,
         fontSize: theme.typography.sm,
@@ -607,6 +930,76 @@ const styles = StyleSheet.create({
     depositValueDisabled: {
         color: theme.colors.textFaint,
     },
+    moneyRow: {
+        flexDirection: 'row',
+        gap: theme.spacing.sm,
+        marginBottom: theme.spacing.xl,
+    },
+    moneyInputWrap: {
+        flex: 1,
+        minHeight: 54,
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.colors.backgroundSoft,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: theme.spacing.base,
+    },
+    moneyPrefix: {
+        color: theme.colors.textMuted,
+        fontFamily: theme.typography.fontFamily.brand,
+        fontSize: theme.typography.base,
+        fontWeight: theme.typography.bold,
+        marginRight: theme.spacing.xs,
+    },
+    moneyInput: {
+        flex: 1,
+        color: theme.colors.textPrimary,
+        fontFamily: theme.typography.fontFamily.body,
+        fontSize: theme.typography.base,
+        paddingVertical: theme.spacing.sm,
+    },
+    moneyPrimaryButton: {
+        minHeight: 54,
+        minWidth: 92,
+        borderRadius: theme.radius.pill,
+        backgroundColor: theme.colors.success,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: theme.spacing.base,
+    },
+    moneyPrimaryButtonText: {
+        color: theme.colors.buddyBlack,
+        fontFamily: theme.typography.fontFamily.body,
+        fontSize: theme.typography.sm,
+        fontWeight: theme.typography.bold,
+    },
+    moneySecondaryButton: {
+        minHeight: 54,
+        minWidth: 92,
+        borderRadius: theme.radius.pill,
+        borderWidth: 2,
+        borderColor: theme.colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: theme.spacing.base,
+    },
+    moneySecondaryButtonText: {
+        color: theme.colors.primary,
+        fontFamily: theme.typography.fontFamily.body,
+        fontSize: theme.typography.sm,
+        fontWeight: theme.typography.bold,
+    },
+    moneyButtonDisabled: {
+        backgroundColor: theme.colors.backgroundSoft,
+        borderWidth: 1,
+        borderColor: theme.colors.borderSoft,
+        opacity: 0.62,
+    },
+    moneyButtonTextDisabled: {
+        color: theme.colors.textFaint,
+    },
     helperNotice: {
         flexDirection: 'row',
         alignItems: 'flex-start',
@@ -614,7 +1007,7 @@ const styles = StyleSheet.create({
         padding: theme.spacing.md,
         borderRadius: theme.radius.lg,
         backgroundColor: theme.colors.primaryMuted,
-        marginBottom: theme.spacing.base,
+        marginBottom: theme.spacing.xl,
     },
     helperNoticeText: {
         flex: 1,

@@ -130,6 +130,7 @@ const styles = StyleSheet.create({
         width: 170,
         height: 58,
         marginBottom: theme.spacing.xl,
+        backgroundColor: 'transparent',
         ...theme.shadow.sm,
     },
     title: {

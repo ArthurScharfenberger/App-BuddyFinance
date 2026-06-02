@@ -540,6 +540,7 @@ const styles = StyleSheet.create({
         width: 58,
         height: 58,
         borderRadius: theme.radius.md,
+        backgroundColor: 'transparent',
         ...theme.shadow.sm,
     },
     greeting: {

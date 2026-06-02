@@ -397,6 +397,7 @@ const styles = StyleSheet.create({
         width: 184,
         height: 64,
         marginBottom: theme.spacing.xl,
+        backgroundColor: 'transparent',
         ...theme.shadow.sm,
     },
     heroVisual: {
