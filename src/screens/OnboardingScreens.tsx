@@ -123,9 +123,11 @@ function SecondaryButton({ title, onPress }: { title: string; onPress: () => voi
 function HeroIllustration() {
     return (
         <View style={styles.heroVisual}>
-            <View style={styles.heroOrb}>
-                <Ionicons name="wallet-outline" size={48} color={theme.colors.primary} />
-            </View>
+            <Image
+                source={require('../../assets/applogo.png')}
+                style={styles.heroLogo}
+                resizeMode="contain"
+            />
             <View style={[styles.floatingCard, styles.floatingCardTop]}>
                 <Ionicons name="shield-checkmark-outline" size={18} color={theme.colors.success} />
                 <Text style={styles.floatingCardText}>Reserva</Text>
@@ -144,11 +146,6 @@ export function OnboardingWelcomeScreen() {
     return (
         <OnboardingLayout>
             <View style={styles.welcomeHeader}>
-                <Image
-                    source={require('../../assets/logo.png')}
-                    style={styles.logo}
-                    resizeMode="contain"
-                />
                 <HeroIllustration />
                 <Text style={styles.welcomeTitle}>Bem-vindo ao Buddy Finance</Text>
                 <Text style={styles.welcomeSubtitle}>
@@ -399,6 +396,10 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.xl,
         backgroundColor: 'transparent',
         ...theme.shadow.sm,
+    },
+    heroLogo: {
+        width: 210,
+        height: 210,
     },
     heroVisual: {
         width: '100%',
