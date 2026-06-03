@@ -13,7 +13,7 @@ import { Platform, StatusBar, StyleSheet, useWindowDimensions, View } from 'reac
 import RootNavigator from './src/navigation/RootNavigator';
 import { theme }  from './src/theme/colors';
 
-const FIRST_ACCESS_RESET_KEY = '@buddyfinance:first_access_reset_v1';
+const FIRST_ACCESS_RESET_KEY = '@buddyfinance:first_access_reset_v2';
 const LOCAL_DATA_KEYS = [
     '@buddyfinance:data_v2',
     '@buddyfinance:emergency_reserve_v1',
